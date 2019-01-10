@@ -1,0 +1,22 @@
+
+             gimbaled thrust aux mixer
+             ============================
+             
+             This file defines a mixer for the gimbaled thrust drone.
+             Value 1 is 1 for VTOL, value 2 is 0 for roll, 1 for pitch, 2 for yaw, 3 for throttle
+             
+             
+             gimbal mixer
+             --------------
+             Channel 1 connects to the left gimbal servo
+             Channel 2 connects to the right gimbal servo
+             
+             M: 2
+             O:        7500    7500    0 -10000  10000
+             S: 1 0  -10000  -10000    0 -10000  10000
+             S: 1 1   10000   10000    0 -10000  10000
+             
+             M: 2
+             O:        7500    7500    0 -10000  10000
+             S: 1 0  -10000  -10000    0 -10000  10000
+             S: 1 1  -10000  -10000    0 -10000  10000
