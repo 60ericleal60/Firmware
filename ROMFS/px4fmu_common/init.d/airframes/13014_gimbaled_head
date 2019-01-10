@@ -40,7 +40,7 @@ then
 	param set VT_TYPE 0
 fi
 
-set MAV_TYPE 19
+set MAV_TYPE 4
 
 set MIXER gimbaled_head
 set MIXER_AUX gimbaled_head
