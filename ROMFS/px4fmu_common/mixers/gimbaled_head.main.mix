@@ -1,0 +1,23 @@
+
+gimbaled thrust mixer
+============================
+
+This file defines a mixer for the gimbaled thrust drone.
+Value 1 is 1 for VTOL, value 2 is 0 for roll, 1 for pitch, 2 for yaw, 3 for throttle
+
+Motor mixer
+------------
+Upper rotor (CCW)
+Mixing between yaw and thrust
+-------------
+M: 2
+S: 1 2  10000  10000      0 -10000  10000
+S: 1 3      0  20000 -10000 -10000  10000
+
+Lower rotor (CW)
+Mixing between yaw and thrust
+-------------
+M: 2
+S: 1 2  -10000  -10000      0 -10000  10000
+S: 1 3      0  20000 -10000 -10000  10000
+
