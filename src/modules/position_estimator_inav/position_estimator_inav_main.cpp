@@ -336,7 +336,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	float att_gyrospeed_filtered[] = { 0.0f, 0.0f, 0.0f };
 	float yaw_comp[] = { 0.0f, 0.0f };
 	hrt_abstime flow_time = 0;
-	float flow_min_dist = 0.2f;
+	float flow_min_dist = 0.05f;
 
 	bool gps_valid = false;			// GPS is valid
 	bool lidar_valid = false;		// lidar is valid
@@ -586,7 +586,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 				if (params.enable_lidar_alt_est && lidar.current_distance > lidar.min_distance
 				    && lidar.current_distance < lidar.max_distance
-				    && (R(2, 2) > 0.7f)) {
+				    && (R(2, 2) > 0.05f)) {
 
 					if (!use_lidar_prev && use_lidar) {
 						lidar_first = true;
@@ -638,7 +638,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				float flow_q = flow.quality / 255.0f;
 				float dist_bottom = lidar.current_distance;
 
-				if (dist_bottom > flow_min_dist && flow_q > params.flow_q_min && R(2, 2) > 0.7f) {
+				if (dist_bottom > flow_min_dist && flow_q > params.flow_q_min && R(2, 2) > 0.05f) {
 					/* distance to surface */
 					//float flow_dist = dist_bottom / PX4_R(att.R, 2, 2); //use this if using sonar
 					float flow_dist = dist_bottom; //use this if using lidar
@@ -975,7 +975,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					}
 
 				} else {
-					if (gps.eph < max_eph_epv * 0.7f && gps.epv < max_eph_epv * 0.7f && gps.fix_type >= 3) {
+					if (gps.eph < max_eph_epv * 0.05f && gps.epv < max_eph_epv * 0.05f && gps.fix_type >= 3) {
 						gps_valid = true;
 						reset_est = true;
 						mavlink_log_info(&mavlink_log_pub, "[inav] GPS signal found");
