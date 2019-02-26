@@ -1122,40 +1122,7 @@ void Ekf2::run()
 			}
 		}
 
-		bool optical_flow_updated = false;
-
-		orb_check(_optical_flow_sub, &optical_flow_updated);
-
-		if (optical_flow_updated) {
-			optical_flow_s optical_flow;
-
-			if (orb_copy(ORB_ID(optical_flow), _optical_flow_sub, &optical_flow) == PX4_OK) {
-				flow_message flow;
-				optical_flow.pixel_flow_x_integral *= range_finder.current_distance;
-				optical_flow.pixel_flow_y_integral *= range_finder.current_distance;
-				flow.flowdata(0) = optical_flow.pixel_flow_x_integral;
-				flow.flowdata(1) = optical_flow.pixel_flow_y_integral;
-				flow.quality = optical_flow.quality;
-				flow.gyrodata(0) = optical_flow.gyro_x_rate_integral;
-				flow.gyrodata(1) = optical_flow.gyro_y_rate_integral;
-				flow.gyrodata(2) = optical_flow.gyro_z_rate_integral;
-				flow.dt = optical_flow.integration_timespan;
-
-				if (PX4_ISFINITE(optical_flow.pixel_flow_y_integral) &&
-				    PX4_ISFINITE(optical_flow.pixel_flow_x_integral)) {
-
-					_ekf.setOpticalFlowData(optical_flow.timestamp, &flow);
-				}
-
-				// Save sensor limits reported by the optical flow sensor
-				_ekf.set_optical_flow_limits(optical_flow.max_flow_rate, optical_flow.min_ground_distance,
-							     optical_flow.max_ground_distance);
-
-				ekf2_timestamps.optical_flow_timestamp_rel = (int16_t)((int64_t)optical_flow.timestamp / 100 -
-						(int64_t)ekf2_timestamps.timestamp / 100);
-			}
-		}
-
+		
 		if (_range_finder_sub_index >= 0) {
 			bool range_finder_updated = false;
 
@@ -1191,6 +1158,43 @@ void Ekf2::run()
 			_range_finder_sub_index = getRangeSubIndex(_range_finder_subs);
 		}
 
+		
+		
+		bool optical_flow_updated = false;
+
+		orb_check(_optical_flow_sub, &optical_flow_updated);
+
+		if (optical_flow_updated) {
+			optical_flow_s optical_flow;
+
+			if (orb_copy(ORB_ID(optical_flow), _optical_flow_sub, &optical_flow) == PX4_OK) {
+				flow_message flow;
+				optical_flow.pixel_flow_x_integral *= range_finder.current_distance;
+				optical_flow.pixel_flow_y_integral *= range_finder.current_distance;
+				flow.flowdata(0) = optical_flow.pixel_flow_x_integral;
+				flow.flowdata(1) = optical_flow.pixel_flow_y_integral;
+				flow.quality = optical_flow.quality;
+				flow.gyrodata(0) = optical_flow.gyro_x_rate_integral;
+				flow.gyrodata(1) = optical_flow.gyro_y_rate_integral;
+				flow.gyrodata(2) = optical_flow.gyro_z_rate_integral;
+				flow.dt = optical_flow.integration_timespan;
+
+				if (PX4_ISFINITE(optical_flow.pixel_flow_y_integral) &&
+				    PX4_ISFINITE(optical_flow.pixel_flow_x_integral)) {
+
+					_ekf.setOpticalFlowData(optical_flow.timestamp, &flow);
+				}
+
+				// Save sensor limits reported by the optical flow sensor
+				_ekf.set_optical_flow_limits(optical_flow.max_flow_rate, optical_flow.min_ground_distance,
+							     optical_flow.max_ground_distance);
+
+				ekf2_timestamps.optical_flow_timestamp_rel = (int16_t)((int64_t)optical_flow.timestamp / 100 -
+						(int64_t)ekf2_timestamps.timestamp / 100);
+			}
+		}
+
+		
 		// get external vision data
 		// if error estimates are unavailable, use parameter defined defaults
 		bool visual_odometry_updated = false;
