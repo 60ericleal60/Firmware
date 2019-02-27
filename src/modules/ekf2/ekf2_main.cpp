@@ -1169,8 +1169,8 @@ void Ekf2::run()
 
 			if (orb_copy(ORB_ID(optical_flow), _optical_flow_sub, &optical_flow) == PX4_OK) {
 				flow_message flow;
-				optical_flow.pixel_flow_x_integral *= _rng_gnd_clearance.get();
-				optical_flow.pixel_flow_y_integral *= _rng_gnd_clearance.get();
+				//optical_flow.pixel_flow_x_integral *= _rng_gnd_clearance.get();
+				//optical_flow.pixel_flow_y_integral *= _rng_gnd_clearance.get();
 				flow.flowdata(0) = optical_flow.pixel_flow_x_integral;
 				flow.flowdata(1) = optical_flow.pixel_flow_y_integral;
 				flow.quality = optical_flow.quality;
