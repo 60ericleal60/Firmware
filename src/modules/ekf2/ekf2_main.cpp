@@ -805,30 +805,17 @@ void Ekf2::run()
 			imu_bias_reset_request = !_ekf.reset_imu_bias();
 		}
 
-		// in replay mode we are getting the actual timestamp from the sensor topic
-		hrt_abstime now = 0;
-
-		if (_replay_mode) {
-			now = sensors.timestamp;
-
-		} else {
-			now = hrt_absolute_time();
-		}
+		const hrt_abstime now = sensors.timestamp;
 
 		// push imu data into estimator
-		float gyro_integral[3];
-		float gyro_dt = sensors.gyro_integral_dt / 1.e6f;
-		gyro_integral[0] = sensors.gyro_rad[0] * gyro_dt;
-		gyro_integral[1] = sensors.gyro_rad[1] * gyro_dt;
-		gyro_integral[2] = sensors.gyro_rad[2] * gyro_dt;
+		imuSample imu_sample_new;
+		imu_sample_new.time_us = now;
+		imu_sample_new.delta_ang_dt = sensors.gyro_integral_dt * 1.e-6f;
+		imu_sample_new.delta_ang = Vector3f{sensors.gyro_rad} * imu_sample_new.delta_ang_dt;
+		imu_sample_new.delta_vel_dt = sensors.accelerometer_integral_dt * 1.e-6f;
+		imu_sample_new.delta_vel = Vector3f{sensors.accelerometer_m_s2} * imu_sample_new.delta_vel_dt;
 
-		float accel_integral[3];
-		float accel_dt = sensors.accelerometer_integral_dt / 1.e6f;
-		accel_integral[0] = sensors.accelerometer_m_s2[0] * accel_dt;
-		accel_integral[1] = sensors.accelerometer_m_s2[1] * accel_dt;
-		accel_integral[2] = sensors.accelerometer_m_s2[2] * accel_dt;
-
-		_ekf.setIMUData(now, sensors.gyro_integral_dt, sensors.accelerometer_integral_dt, gyro_integral, accel_integral);
+		_ekf.setIMUData(imu_sample_new);
 
 		// publish attitude immediately (uses quaternion from output predictor)
 		publish_attitude(sensors, now);
@@ -1122,7 +1109,38 @@ void Ekf2::run()
 			}
 		}
 
-		
+		bool optical_flow_updated = false;
+
+		orb_check(_optical_flow_sub, &optical_flow_updated);
+
+		if (optical_flow_updated) {
+			optical_flow_s optical_flow;
+
+			if (orb_copy(ORB_ID(optical_flow), _optical_flow_sub, &optical_flow) == PX4_OK) {
+				flow_message flow;
+				flow.flowdata(0) = optical_flow.pixel_flow_x_integral;
+				flow.flowdata(1) = optical_flow.pixel_flow_y_integral;
+				flow.quality = optical_flow.quality;
+				flow.gyrodata(0) = optical_flow.gyro_x_rate_integral;
+				flow.gyrodata(1) = optical_flow.gyro_y_rate_integral;
+				flow.gyrodata(2) = optical_flow.gyro_z_rate_integral;
+				flow.dt = optical_flow.integration_timespan;
+
+				if (PX4_ISFINITE(optical_flow.pixel_flow_y_integral) &&
+				    PX4_ISFINITE(optical_flow.pixel_flow_x_integral)) {
+
+					_ekf.setOpticalFlowData(optical_flow.timestamp, &flow);
+				}
+
+				// Save sensor limits reported by the optical flow sensor
+				_ekf.set_optical_flow_limits(optical_flow.max_flow_rate, optical_flow.min_ground_distance,
+							     optical_flow.max_ground_distance);
+
+				ekf2_timestamps.optical_flow_timestamp_rel = (int16_t)((int64_t)optical_flow.timestamp / 100 -
+						(int64_t)ekf2_timestamps.timestamp / 100);
+			}
+		}
+
 		if (_range_finder_sub_index >= 0) {
 			bool range_finder_updated = false;
 
@@ -1158,43 +1176,6 @@ void Ekf2::run()
 			_range_finder_sub_index = getRangeSubIndex(_range_finder_subs);
 		}
 
-		
-		
-		bool optical_flow_updated = false;
-
-		orb_check(_optical_flow_sub, &optical_flow_updated);
-
-		if (optical_flow_updated) {
-			optical_flow_s optical_flow;
-
-			if (orb_copy(ORB_ID(optical_flow), _optical_flow_sub, &optical_flow) == PX4_OK) {
-				flow_message flow;
-				//optical_flow.pixel_flow_x_integral *= _rng_gnd_clearance.get();
-				//optical_flow.pixel_flow_y_integral *= _rng_gnd_clearance.get();
-				flow.flowdata(0) = optical_flow.pixel_flow_x_integral;
-				flow.flowdata(1) = optical_flow.pixel_flow_y_integral;
-				flow.quality = optical_flow.quality;
-				flow.gyrodata(0) = optical_flow.gyro_x_rate_integral;
-				flow.gyrodata(1) = optical_flow.gyro_y_rate_integral;
-				flow.gyrodata(2) = optical_flow.gyro_z_rate_integral;
-				flow.dt = optical_flow.integration_timespan;
-
-				if (PX4_ISFINITE(optical_flow.pixel_flow_y_integral) &&
-				    PX4_ISFINITE(optical_flow.pixel_flow_x_integral)) {
-
-					_ekf.setOpticalFlowData(optical_flow.timestamp, &flow);
-				}
-
-				// Save sensor limits reported by the optical flow sensor
-				_ekf.set_optical_flow_limits(optical_flow.max_flow_rate, optical_flow.min_ground_distance,
-							     optical_flow.max_ground_distance);
-
-				ekf2_timestamps.optical_flow_timestamp_rel = (int16_t)((int64_t)optical_flow.timestamp / 100 -
-						(int64_t)ekf2_timestamps.timestamp / 100);
-			}
-		}
-
-		
 		// get external vision data
 		// if error estimates are unavailable, use parameter defined defaults
 		bool visual_odometry_updated = false;
@@ -2482,12 +2463,9 @@ int Ekf2::print_usage(const char *reason)
 		R"DESCR_STR(
 ### Description
 Attitude and position estimator using an Extended Kalman Filter. It is used for Multirotors and Fixed-Wing.
-
-The documentation can be found on the [tuning_the_ecl_ekf](https://dev.px4.io/en/tutorials/tuning_the_ecl_ekf.html) page.
-
+The documentation can be found on the [ECL/EKF Overview & Tuning](https://docs.px4.io/en/advanced_config/tuning_the_ecl_ekf.html) page.
 ekf2 can be started in replay mode (`-r`): in this mode it does not access the system time, but only uses the
 timestamps from the sensor topics.
-
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("ekf2", "estimator");
