@@ -1,4 +1,3 @@
-
 /****************************************************************************
  *
  *   Copyright (c) 2015-2018 PX4 Development Team. All rights reserved.
@@ -2464,9 +2463,12 @@ int Ekf2::print_usage(const char *reason)
 		R"DESCR_STR(
 ### Description
 Attitude and position estimator using an Extended Kalman Filter. It is used for Multirotors and Fixed-Wing.
+
 The documentation can be found on the [ECL/EKF Overview & Tuning](https://docs.px4.io/en/advanced_config/tuning_the_ecl_ekf.html) page.
+
 ekf2 can be started in replay mode (`-r`): in this mode it does not access the system time, but only uses the
 timestamps from the sensor topics.
+
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("ekf2", "estimator");
