@@ -283,7 +283,7 @@ PX4FLOW::init()
 	param_t hmin = param_find("SENS_FLOW_MINHGT");
 
 	if (hmin != PARAM_INVALID) {
-		float val = 0.7;
+		float val = 0.1;
 		param_get(hmin, &val);
 
 		_sensor_min_range = val;
@@ -301,7 +301,7 @@ PX4FLOW::init()
 	param_t ratemax = param_find("SENS_FLOW_MAXR");
 
 	if (ratemax != PARAM_INVALID) {
-		float val = 2.5;
+		float val = 6.7;
 		param_get(ratemax, &val);
 
 		_sensor_max_flow_rate = val;
